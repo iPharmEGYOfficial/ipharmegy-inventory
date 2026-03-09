@@ -36,6 +36,26 @@ function safeNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
+async function loadItemsBatch(batchSize = 100) {
+  let offset = 0;
+  let rows = [];
+
+  while (true) {
+    const batch = await client.query(
+      queries.classesBatch(offset, batchSize)
+    );
+
+    if (batch.length === 0) break;
+
+    rows = rows.concat(batch);
+    offset += batchSize;
+
+    console.log("Loaded items:", rows.length);
+  }
+
+  return rows;
+}
+
 function buildStoreIndex() {
   return StoreRepository.all().reduce((acc, store) => {
     acc[store.storeId] = store;
@@ -85,7 +105,7 @@ function buildInventoryView() {
 async function loadLiveInventory() {
   resetMemory();
 
-  const classes = await client.query(queries.classesTop10);
+  const classes = await loadItemsBatch(100);
   const barcodes = await client.query(queries.barcodesTop10);
   const stores = await client.query(queries.storesTop10);
   const stock = await client.query(queries.stockTop10);
